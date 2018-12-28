@@ -7,13 +7,20 @@
 ;;#!/usr/bin/sbcl --script
 
 (ql:quickload '(uiop optima optima.ppcre binascii cl-scripting
-		inferior-shell command-line-arguments ip-interfaces))
+		inferior-shell command-line-arguments ip-interfaces
+		alexandria))
 
 (defpackage :ipa-master
-  (:use :cl)
-  (:export #:main))
+  (:use :cl :ipa-master :uiop :optima :alexandria))
+(:export #:main))
 
 (in-package :ipa-master)
+
+;; asignaciones generales
+(defparameter *input-device-name* nil)
+(defparameter *input-gateway* nil)
+(defparameter *input-netmask* nil)
+
 
 (defun check-root ()
   "Verifica si eres usuario root"
@@ -132,7 +139,7 @@ entre ellos."
 	    (add-or (cdr lst)))))
 
 (defmacro first-true (elem lst)
-  "Verifica si `elem' está contenido en `lst'"
+  "Verifica si `elem' está contenido en `lst', retornando un booleano."
   `(eval (reverse
 	  (add-or
 	   (match? ,elem ,lst)))))
@@ -143,36 +150,76 @@ entre ellos."
        ((not ,test))
      ,@body))
 
-(defun check-device ()
+(defun input-device-name ()
+  "Verifica si el dispositivo ingresado es válido sino pregunta nuevamente
+y modifica la variable global *input-device-name*."
   (format t "Ingrese el nombre del dispositivo de red.~%")
   (let ((capture (read-line)))
+    (if (first-true capture (interface-names))
+	(setf *input-device-name* capture))
     (while (not (first-true capture (interface-names)))
       (format t "Por favor ingrese un nombre de interfaz de red existente en su equipo.~%")
       (extract-ips (your-devices-and-ipv4))
-      (setf capture (read-line))
+      (let ((nw-capture (read-line)))
+	(setf capture nw-capture)
+	(setf *input-device-name* nw-capture)))))
 
-;; main
-(defun ip-configurarion ()
-  (format t "Ingrese la IP del servidor: [~A]~%" (cadr (cadr (your-devices-and-ipv4))))
-  (let ((capture-ip (read-line)))
-    (when (not (equal capture-ip ""))
-      (format t "################### Importante ####################~%")
-      (format t "Luego de configurar el dispositivo, perderá la conexión por el cambio IPv4~%")
-      (format t "###################################################~%")
-      (format t "Estos son sus dispositivos de red e IPv4")
-      (extract-ips (your-devices-and-ipv4))
-      (format t "Ingrese el nombre del dispositivo: "
-    (while (not (ip-p capture-ip))
-      (format t "Número IPv4 inválido, ingrese uno correcto.~%")
-      (let ((repeat-ip (read-line)
-    (if (ip-p capture-ip)
-	(when (equal capture-ip "")
-	  (print "tomar esa ip como la del server en una var general")
-	  (print "agregar esa ip en /etc/hosts")
-	  (print "generar la reversa de dicha ipv4 y asignarla a una variable general"))
-	(when (and (ip-p capture-ip) (not (equal capture-ip "")))
-	  (format t "############### Importante #####################~%")
-	  (format t "Luego de configurar el dispositivo, perderá la conexión por el cambio de IPv4~%")
-	  (format t "################################################~%")
-	  (extract-ips (your-devices-and-ipv4))
-	  ))))
+(defun input-gateway ()
+  "Verifica si la IPv4 ingresada es válida, sino pregunta nuevamente y modifica
+la variable global *input-gateway*."
+  (format t "Ingrese la IPv4 del gateway.~%")
+  (let ((capture (read-line)))
+    (if (ip-p capture)
+	(setf *input-gateway* capture))
+    (while (not (ip-p capture))
+      (format t "Por favor ingrese una IPv4 válida.~%")
+      (let ((nw-capture (read-line)))
+	(setf capture nw-capture)
+	(setf *input-gateway* nw-capture)))))
+
+(defun input-netmask ()
+  (format t "Ingrese la IPv4 del gateway.~%")
+  (let ((capture (read-line)))
+    (if (ip-p capture)
+	(setf *input-netmask* capture))
+    (while (not (ip-p capture))
+      (format t "Por favor ingrese una IPv4 válida.~%")
+      (let ((nw-capture (read-line)))
+	(setf capture nw-capture)
+	(setf *input-netmask* nw-capture)))))
+
+;; Calculate reverse zone
+
+(defun add-concatenate (lst)
+  "AUX: Agrega `string' y `concatenate' al final de la lista"
+  (if (equal nil lst)
+      (cons ''string
+	    (cons 'concatenate nil))
+      (cons (car lst)
+	    (add-concatenate (cdr lst)))))
+
+(defun add-dot (lst)
+  "AUX: Agrega un punto entre los elementos de la lista."
+  (if (equal nil lst)
+      nil
+    (cons
+     (cons (car lst)
+	   (cons "." nil))
+     (add-dot (cdr lst)))))
+
+(defmacro reverse-zone (ipv4-str)
+  "Evalúa la función `concatenate' agregada como dato
+y genera la zona inversa."
+  `(eval
+    (reverse
+     (add-concatenate
+      (nconc '("in-addr.arpa.") '(".")
+	     (mapcar #'(lambda (x)
+			 (elt (reverse
+			       (cdr
+				(reverse
+				 (alexandria:flatten
+				  (add-dot
+				   (cl-ppcre:split "\\." ,ipv4-str))))))
+			      x))
+		     (range 0 5)))))))
