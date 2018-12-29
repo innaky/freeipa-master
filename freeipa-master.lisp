@@ -207,19 +207,27 @@ la variable global *input-gateway*."
 	   (cons "." nil))
      (add-dot (cdr lst)))))
 
+(defmacro first-oct-ipv4 (ipv4-str)
+  "Extrae los primeros 3 octetos de una IPv4."
+  `(mapcar #'(lambda (x)
+	       (elt (reverse
+		     (cdr
+		      (reverse
+		       (alexandria:flatten
+			(add-dot
+			 (cl-ppcre:split "\\." ,ipv4-str))))))
+		    x))
+	   (range 0 5)))
+
 (defmacro reverse-zone (ipv4-str)
-  "Evalúa la función `concatenate' agregada como dato
-y genera la zona inversa."
+  "Genera la zona reversa de una IPv4."
   `(eval
     (reverse
      (add-concatenate
-      (nconc '("in-addr.arpa.") '(".")
-	     (mapcar #'(lambda (x)
-			 (elt (reverse
-			       (cdr
-				(reverse
-				 (alexandria:flatten
-				  (add-dot
-				   (cl-ppcre:split "\\." ,ipv4-str))))))
-			      x))
-		     (range 0 5)))))))
+      (reverse
+       (alexandria:flatten
+	(list
+	 (reverse (first-oct-ipv4 ,ipv4-str))
+	 '(".")
+	 '("in-addr.arpa."))))))))
+
