@@ -10,11 +10,11 @@
 		inferior-shell command-line-arguments ip-interfaces
 		alexandria))
 
-(defpackage :ipa-master
-  (:use :cl :ipa-master :uiop :optima :alexandria))
-(:export #:main))
+;;(defpackage :ipa-master
+;; (:use :cl :ipa-master :uiop :optima :alexandria))
+;;(:export #:main))
 
-(in-package :ipa-master)
+;;(in-package :ipa-master)
 
 ;; General asignations
 (defparameter *input-device-name* nil)
@@ -75,7 +75,7 @@
 
 (defun vec-to-ipv4str (vec)
   "Transform a vector (with a IPv4) in a IPv4 string."
-  (format nil "~{~A~}" (vec-to-dot-sting vec)))
+  (format nil "~{~A~}" (vec-to-dot-string vec)))
 
 (defun combine-cars (lst1 lst2)
   "Return a list with sublist, the sublist contain the cars (recursively) of the `lst1' and `lst2'"
@@ -123,18 +123,9 @@
       (cons (equal elem (car lst))
 	    (match? elem (cdr lst)))))
 
-(defun add-or (lst)
-  "Add `or' in the end of the list."
-  (if (equal nil lst)
-      (cons 'or nil)
-      (cons (car lst)
-	    (add-or (cdr lst)))))
-
-(defmacro first-true (elem lst)
-  "Verify if `elem' exist in `lst', return a boolean."
-  `(eval (reverse
-	  (add-or
-	   (match? ,elem ,lst)))))
+(defun or-match? (elem lst)
+  (car
+   (or (alexandria:flatten (match? elem lst)))))
 
 ;; Check the device IPv4
 (defmacro while (test &rest body)
@@ -146,9 +137,9 @@
   "Receives a input from the user and check if the device exist, else return egain the question. This function modify the global variable *input-device-name*"
   (format t "Input the name of the net device.~%")
   (let ((capture (read-line)))
-    (if (first-true capture (interface-names))
+    (if (or-match? capture (interface-names))
 	(setf *input-device-name* capture))
-    (while (not (first-true capture (interface-names)))
+    (while (not (or-match? capture (interface-names)))
       (format t "Please, Input a valid net device name.~%")
       (extract-ips (your-devices-and-ipv4))
       (let ((nw-capture (read-line)))
@@ -168,12 +159,12 @@
 	(setf *input-gateway* nw-capture)))))
 
 (defun input-netmask ()
-  (format t "Ingrese la IPv4 del gateway.~%")
+  (format t "Input the IPv4 of the netmask.~%")
   (let ((capture (read-line)))
     (if (ip-p capture)
 	(setf *input-netmask* capture))
     (while (not (ip-p capture))
-      (format t "Por favor ingrese una IPv4 válida.~%")
+      (format t "Please, input the IPv4 of the netmask.~%")
       (let ((nw-capture (read-line)))
 	(setf capture nw-capture)
 	(setf *input-netmask* nw-capture)))))
