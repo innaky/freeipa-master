@@ -16,20 +16,21 @@
 
 (in-package :ipa-master)
 
-;; asignaciones generales
+;; General asignations
 (defparameter *input-device-name* nil)
 (defparameter *input-gateway* nil)
 (defparameter *input-netmask* nil)
 
 
 (defun check-root ()
-  "Verifica si eres usuario root"
+  "Check if you are the root"
   (if (not (equal (sb-posix:geteuid) 0))
       (progn
-	(princ "Este script funciona sólo con el usuario root.")
+	(princ "This script run only with root privileges.")
 	(sb-ext:exit))))
 
 (defun ip-p (string)
+  "AUX: Verify if the input match with IPv4."
   (multiple-value-bind (match groups)
       (cl-ppcre:scan-to-strings
        "^([0-9]{0,3})\.([0-9]{0,3})\.([0-9]{0,3})\.([0-9]{0,3})$"
@@ -40,66 +41,21 @@
 		      (<= 0 num 255))
 		  numbers)))))
 
-(defparameter *nics* (ip-interfaces:get-ip-interfaces))
-
 (defun get-hostname ()
-  "Presenta el hostname, si la elección es vacía, se cambia el nombre del host por el
-ingresado."
-  (format t "Ingrese el nombre del host: [~A]~%" (inferior-shell:run/ss "hostname -s"))
+  "Print the host name, if the entry is not empty, change the name of the host by the entered."
+  (format t "Input the hostname: [~A]~%" (inferior-shell:run/ss "hostname -s"))
   (let ((hostname (read-line)))
     (if (not (equal hostname ""))
 	(inferior-shell:run/ss `(hostnamectl set-hostname ,hostname)))))
 
-(defun your-devices-and-ipv4 ()
-  (combine-cars (interface-names)
-		(mapcar #'vec-to-ipv4str (interface-address))))
-
-(defun extract-ips (lst)
-  "Ingresa una lista con sublistas, imprimo el valor de las sublistas
-de forma editada (ver `format')"
-  (if (equal nil lst)
-      nil
-      (cons (let ((element (car lst)))
-	      (format t "~a: ~a ~%" (car element) (cadr element)))
-	    (extract-ips (cdr lst)))))
-
 (defun range (start end)
-  "Imprime una lista con números entre `start' y `end'."
+  "AUX: Create a list with values between `start' and `end'"
   (if (equal start end)
       nil
       (cons start (range (1+ start) end))))
 
-(defun interface-names ()
-  "Imprime los nombres de las interfaces de red."
-  (let ((interfaces (ip-interfaces:get-ip-interfaces)))
-    (mapcar (lambda (x)
-	      (ip-interfaces:ip-interface-name
-	       (nth x interfaces)))
-	    (range 0 (length interfaces)))))
-
-(defun interface-address ()
-  "Imprime la dirección de las interfaces de red."
-  (let ((interfaces (ip-interfaces:get-ip-interfaces)))
-    (mapcar (lambda (x)
-	      (ip-interfaces:ip-interface-address
-	       (nth x interfaces)))
-	    (range 0 (length interfaces)))))
-
-(defun combine-cars (lst1 lst2)
-  "Combina el `car' de dos listas recursivamente y
-retorna una lista."
-  (if (equal nil lst1)
-      nil
-      (cons (cons (car lst1)
-		  (cons (car lst2) nil))
-	    (combine-cars (cdr lst1)
-			  (cdr lst2)))))
-
-;; Vector to string IPv4
-;; De entrada asumiré que el vector corresponde a una IPv4
 (defun vector-to-lst-dot (vec)
-  "Ingresa un vector y retorna una lista con sublistas del elemento
-más un punto (.)."
+  "AUX: Return a list with sublist. This sublist contains the vector element in string format and a dot in string format."
   (let ((veclst (concatenate 'list vec)))
     (if (equal veclst nil)
 	nil
@@ -112,67 +68,101 @@ más un punto (.)."
 	 (vector-to-lst-dot (cdr veclst))))))
 
 (defun vec-to-dot-string (vec)
-  "Retorna una lista de strings de los elementos del vector con puntos
-entre ellos."
+  "Transform a vector in a list. The elements of the vectors in string format and among them, a dot in string format."
   (let ((flat-lst (alexandria:flatten (vector-to-lst-dot vec))))
     (reverse
      (cdr (reverse flat-lst)))))
 
 (defun vec-to-ipv4str (vec)
-  "Ingresa un vector con una dirección IPv4 y retorna un string del mismo."
-  (format nil "~{~A~}" (vec-to-dot-string vec)))
+  "Transform a vector (with a IPv4) in a IPv4 string."
+  (format nil "~{~A~}" (vec-to-dot-sting vec)))
 
-;; Para verificar si una interfaz de red ingresada existe o no.
+(defun combine-cars (lst1 lst2)
+  "Return a list with sublist, the sublist contain the cars (recursively) of the `lst1' and `lst2'"
+  (if (equal nil lst1)
+      nil
+      (cons (cons (car lst1)
+		  (cons (car lst2) nil))
+	    (combine-cars (cdr lst1)
+			  (cdr lst2)))))
+
+(defun interface-names ()
+  "Return a list with the interface names, in string format."
+  (let ((interfaces (ip-interfaces:get-ip-interfaces)))
+    (mapcar (lambda (x)
+	      (ip-interfaces:ip-interface-name
+	       (nth x interfaces)))
+	    (range 0 (length interfaces)))))
+
+(defun interface-address ()
+  "Return a list with vector elements, in ipv4 primitive format."
+  (let ((interfaces (ip-interfaces:get-ip-interfaces)))
+    (mapcar (lambda (x)
+	      (ip-interfaces:ip-interface-address
+	       (nth x interfaces)))
+	    (range 0 (length interfaces)))))
+
+(defun your-devices-and-ipv4 ()
+  "Return a list with sublist, this contains the devicename and the ipv4."
+  (combine-cars (interface-names)
+		(mapcar #'vec-to-ipv4str (interface-address))))
+
+(defun extract-ips (lst)
+  "Return a readable format the interface names and IPv4."
+  (if (equal nil lst)
+      nil
+      (cons (let ((element (car lst)))
+	      (format t "~a: ~a ~%" (car element) (cadr element)))
+	    (extract-ips (cdr lst)))))
+
+;; Verify if a interface exist.
 (defun match? (elem lst)
-  "Verifica si el elemento `elem' es `equal' a alguno de los elementos de
-`lst'"
+  "Return a list with boolean values, verify if `elem' exist in `lst'."
   (if (equal nil lst)
       nil
       (cons (equal elem (car lst))
 	    (match? elem (cdr lst)))))
 
 (defun add-or (lst)
-  "Agrega un `or' al final de la lista."
+  "Add `or' in the end of the list."
   (if (equal nil lst)
       (cons 'or nil)
       (cons (car lst)
 	    (add-or (cdr lst)))))
 
 (defmacro first-true (elem lst)
-  "Verifica si `elem' está contenido en `lst', retornando un booleano."
+  "Verify if `elem' exist in `lst', return a boolean."
   `(eval (reverse
 	  (add-or
 	   (match? ,elem ,lst)))))
 
-;; Chequeo de device
+;; Check the device IPv4
 (defmacro while (test &rest body)
   `(do ()
        ((not ,test))
      ,@body))
 
 (defun input-device-name ()
-  "Verifica si el dispositivo ingresado es válido sino pregunta nuevamente
-y modifica la variable global *input-device-name*."
-  (format t "Ingrese el nombre del dispositivo de red.~%")
+  "Receives a input from the user and check if the device exist, else return egain the question. This function modify the global variable *input-device-name*"
+  (format t "Input the name of the net device.~%")
   (let ((capture (read-line)))
     (if (first-true capture (interface-names))
 	(setf *input-device-name* capture))
     (while (not (first-true capture (interface-names)))
-      (format t "Por favor ingrese un nombre de interfaz de red existente en su equipo.~%")
+      (format t "Please, Input a valid net device name.~%")
       (extract-ips (your-devices-and-ipv4))
       (let ((nw-capture (read-line)))
 	(setf capture nw-capture)
 	(setf *input-device-name* nw-capture)))))
 
 (defun input-gateway ()
-  "Verifica si la IPv4 ingresada es válida, sino pregunta nuevamente y modifica
-la variable global *input-gateway*."
-  (format t "Ingrese la IPv4 del gateway.~%")
+  "Verify if the input IPv4 is valid, else return egain the question. This function modify the global variable *input-gateway*"
+  (format t "Input the IPv4 of the gateway.~%")
   (let ((capture (read-line)))
     (if (ip-p capture)
 	(setf *input-gateway* capture))
     (while (not (ip-p capture))
-      (format t "Por favor ingrese una IPv4 válida.~%")
+      (format t "Please, input a valid IPv4.~%")
       (let ((nw-capture (read-line)))
 	(setf capture nw-capture)
 	(setf *input-gateway* nw-capture)))))
@@ -191,7 +181,7 @@ la variable global *input-gateway*."
 ;; Calculate reverse zone
 
 (defun add-concatenate (lst)
-  "AUX: Agrega `string' y `concatenate' al final de la lista"
+  "Add `string' and the function `concatenate' in the end of the `lst'."
   (if (equal nil lst)
       (cons ''string
 	    (cons 'concatenate nil))
@@ -199,7 +189,7 @@ la variable global *input-gateway*."
 	    (add-concatenate (cdr lst)))))
 
 (defun add-dot (lst)
-  "AUX: Agrega un punto entre los elementos de la lista."
+  "Add dots between the elements of the `lst'."
   (if (equal nil lst)
       nil
     (cons
@@ -208,7 +198,7 @@ la variable global *input-gateway*."
      (add-dot (cdr lst)))))
 
 (defmacro first-oct-ipv4 (ipv4-str)
-  "Extrae los primeros 3 octetos de una IPv4."
+  "Extract the first three elements of a IPv4."
   `(mapcar #'(lambda (x)
 	       (elt (reverse
 		     (cdr
@@ -220,7 +210,7 @@ la variable global *input-gateway*."
 	   (range 0 5)))
 
 (defmacro reverse-zone (ipv4-str)
-  "Genera la zona reversa de una IPv4."
+  "Return the reverse zone for the input `ipv4-str'"
   `(eval
     (reverse
      (add-concatenate
@@ -230,4 +220,3 @@ la variable global *input-gateway*."
 	 (reverse (first-oct-ipv4 ,ipv4-str))
 	 '(".")
 	 '("in-addr.arpa."))))))))
-
