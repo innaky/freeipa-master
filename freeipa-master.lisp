@@ -171,16 +171,9 @@
 
 ;; Calculate reverse zone
 
-(defun add-concatenate (lst)
-  "Add `string' and the function `concatenate' in the end of the `lst'."
-  (if (equal nil lst)
-      (cons ''string
-	    (cons 'concatenate nil))
-      (cons (car lst)
-	    (add-concatenate (cdr lst)))))
-
-(defun add-dot (lst)
-  "Add dots between the elements of the `lst'."
+(defun elem-dot (lst)
+  "AUX: Transform `lst' in sublists, that contains element and
+a point in string format."
   (if (equal nil lst)
       nil
     (cons
@@ -188,26 +181,32 @@
 	   (cons "." nil))
      (add-dot (cdr lst)))))
 
+(defun add-dot (lst)
+  "Add dots between the elements of the `lst'."
+  (alexandria:flatten
+   (elem-dot lst)))
+
+(defun delete-last-elem (lst)
+  "Generates a new list, without the last element."
+  (reverse
+   (cdr (reverse lst))))
+
 (defmacro first-oct-ipv4 (ipv4-str)
-  "Extract the first three elements of a IPv4."
+  "Input a IPv4 in string format, and output a list
+   with the first three elements of the Ipv4."
   `(mapcar #'(lambda (x)
-	       (elt (reverse
-		     (cdr
-		      (reverse
-		       (alexandria:flatten
-			(add-dot
-			 (cl-ppcre:split "\\." ,ipv4-str))))))
-		    x))
+	       (elt
+		(delete-last-elem
+		  (add-dot (cl-ppcre:split "\\." ,ipv4-str)))
+		x))
 	   (range 0 5)))
 
-(defmacro reverse-zone (ipv4-str)
-  "Return the reverse zone for the input `ipv4-str'"
-  `(eval
-    (reverse
-     (add-concatenate
-      (reverse
-       (alexandria:flatten
-	(list
-	 (reverse (first-oct-ipv4 ,ipv4-str))
-	 '(".")
-	 '("in-addr.arpa."))))))))
+(defun reverse-zone (ipv4)
+  "Calculate the reverse zone of a IPv4."
+  (apply #'concatenate 'string
+	 (alexandria:flatten
+	  (concatenate 'list
+		       (reverse
+			(first-oct-ipv4 ipv4))
+		       '(".")
+		       '("in-add.arpa.")))))
