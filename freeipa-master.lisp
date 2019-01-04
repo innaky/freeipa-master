@@ -20,6 +20,7 @@
 (defparameter *input-device-name* nil)
 (defparameter *input-gateway* nil)
 (defparameter *input-netmask* nil)
+(defparameter *ip-server* nil)
 
 
 (defun check-root ()
@@ -134,7 +135,9 @@
      ,@body))
 
 (defun input-device-name ()
-  "Receives a input from the user and check if the device exist, else return egain the question. This function modify the global variable *input-device-name*"
+  "Receives a input from the user and check if the device exist,
+   else return egain the question. This function modify the
+   global variable *input-device-name*"
   (format t "Input the name of the net device.~%")
   (let ((capture (read-line)))
     (if (or-match? capture (interface-names))
@@ -147,7 +150,8 @@
 	(setf *input-device-name* nw-capture)))))
 
 (defun input-gateway ()
-  "Verify if the input IPv4 is valid, else return egain the question. This function modify the global variable *input-gateway*"
+  "Verify if the input IPv4 is valid, else return egain the question.
+   This function modify the global variable *input-gateway*"
   (format t "Input the IPv4 of the gateway.~%")
   (let ((capture (read-line)))
     (if (ip-p capture)
@@ -169,8 +173,28 @@
 	(setf capture nw-capture)
 	(setf *input-netmask* nw-capture)))))
 
-;; Calculate reverse zone
+(defun input-ipv4-server ()
+  (format t "Input the IPv4 for your previously select device~%")
+  (let ((capture (read-line)))
+    (if (ip-p capture)
+	(setf *ip-server* capture))
+    (while (not (ip-p capture))
+      (format t "Please input a valid IPv4.~%")
+      (let ((nw-capture (read-line)))
+	(setf capture nw-capture)
+	(setf *ip-server* nw-capture)))))
 
+(defun ipv4-config ()
+  "Main for IPv4 configuration."
+  (format t "################### IPv4 configuration ################")
+  (format t "That is your devices and IPv4 configuration")
+  (extract-ips (your-devices-and-ipv4))
+  (input-device-name)
+  (input-ipv4-server)
+  (input-gateway)
+  (input-netmask))
+
+;; Calculate reverse zone
 (defun elem-dot (lst)
   "AUX: Transform `lst' in sublists, that contains element and
 a point in string format."
@@ -210,3 +234,18 @@ a point in string format."
 			(first-oct-ipv4 ipv4))
 		       '(".")
 		       '("in-add.arpa.")))))
+
+;; system commands
+(defun update-centos ()
+  (inferior-shell:run/ss `(yum -y update))
+  (inferior-shell:run/ss `(yum -y upgrade)))
+
+(defun set-firewall ()
+  (inferior-shell:run/ss `(firewall-cmd --permanent --add-port={53,80,88,111,389,443,464,636,2049,20048}/tcp))
+  (inferior-shell:run/ss `(firewall-cmd --permanent --add-port={53,88,111,123,464,2049,20048}/udp))
+  (inferior-shell:run/ss `(firewall-cmd --permanent --add-service={http,https,ldap,ldaps,kerberos,dns,ntp,nfs,mountd}))
+  (inferior-shell:run/ss `(firewall-cmd --reload)))
+
+(defun install-ipa ()
+  (inferior-shell:run/ss `(yum -y update))
+  (inferior-shell:run/ss `(yum -y install ipa-server ipa-server-dns bind bind-utils bind-dyndb-ldap rng-tools vim)))
