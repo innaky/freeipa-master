@@ -8,7 +8,7 @@
 
 (ql:quickload '(uiop optima optima.ppcre binascii cl-scripting
 		inferior-shell command-line-arguments ip-interfaces
-		alexandria))
+		alexandria str))
 
 ;;(defpackage :ipa-master
 ;; (:use :cl :ipa-master :uiop :optima :alexandria))
@@ -21,6 +21,7 @@
 (defparameter *input-gateway* nil)
 (defparameter *input-netmask* nil)
 (defparameter *ip-server* nil)
+(defparameter *domain-realm* nil)
 
 
 (defun check-root ()
@@ -128,6 +129,10 @@
   (car
    (or (alexandria:flatten (match? elem lst)))))
 
+(defun concat (&rest strings)
+  "Concatenate multiple strings."
+  (apply #'concatenate 'string strings))
+
 ;; Check the device IPv4
 (defmacro while (test &rest body)
   `(do ()
@@ -194,6 +199,15 @@
   (input-gateway)
   (input-netmask))
 
+;; domain and realm
+
+(defun domain ()
+  "Capture the domain and set *domain-realm*."
+  (format t "Input the domain name. ~%")
+  (let ((capture (read-line)))
+    (if (stringp capture)
+	(setq *domain-realm* capture))))
+
 ;; Calculate reverse zone
 (defun elem-dot (lst)
   "AUX: Transform `lst' in sublists, that contains element and
@@ -234,6 +248,25 @@ a point in string format."
 			(first-oct-ipv4 ipv4))
 		       '(".")
 		       '("in-add.arpa.")))))
+;; add in the last files
+(defun add-str-in-last-file (filename str)
+  "Add `str' in the end of the `filename'."
+  (with-open-file (stream filename :direction :output
+			  :if-exists :append)
+    (format stream "~A~%" str)))
+
+(defun ntp-set-file ()
+  "Set the /etc/ntp.conf"
+  (add-str-in-last-file "/etc/ntp.conf"
+			(concat *ip-server* " netmask " *input-netmask*)))
+
+(defun resolv-set-file ()
+  "Set the /etc/resolv.conf"
+  (progn
+    (add-str-in-last-file "/etc/resolv.conf"
+			  (concat "search " *domain-realm*))
+    (add-str-in-last-file "/etc/resolv.conf"
+			  (concat "nameserver " *ip-server*))))
 
 ;; system commands
 (defun update-centos ()
