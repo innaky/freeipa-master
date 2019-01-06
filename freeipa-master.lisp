@@ -8,7 +8,7 @@
 
 (ql:quickload '(uiop optima optima.ppcre binascii cl-scripting
 		inferior-shell command-line-arguments ip-interfaces
-		alexandria str))
+		alexandria str cl-ppcre))
 
 ;;(defpackage :ipa-master
 ;; (:use :cl :ipa-master :uiop :optima :alexandria))
@@ -269,34 +269,46 @@ a point in string format."
 			  (concat "nameserver " *ip-server*))))
 
 ;; system commands
+(defun shell (lst)
+  (mapcar (lambda (command)
+	    (inferior-shell:run/ss
+	     command))
+	  lst))
+
 (defun update-centos ()
-  (inferior-shell:run/ss `(yum -y update))
-  (inferior-shell:run/ss `(yum -y upgrade)))
+  (shell '((yum -y update)
+	   (yum -y upgrade))))
 
-(defun set-firewall ()
-  (inferior-shell:run/ss `(firewall-cmd --permanent --add-port={53,80,88,111,389,443,464,636,2049,20048}/tcp))
-  (inferior-shell:run/ss `(firewall-cmd --permanent --add-port={53,88,111,123,464,2049,20048}/udp))
-  (inferior-shell:run/ss `(firewall-cmd --permanent --add-service={http,https,ldap,ldaps,kerberos,dns,ntp,nfs,mountd}))
-  (inferior-shell:run/ss `(firewall-cmd --reload)))
+(defun firewall-conf ()
+  (shell
+   '((firewall-cmd --permanent --add-port={53,80,111,389,443,464,636,2049,20048}/tcp)
+     (firewall-cmd --permanent --add-port={53,88,111,123,464,2049,20048}/udp)
+     (firewall-cmd --permanent --add-service={http,https,ldap,ldaps,kerberos,dns,ntp,nfs,mountd})
+     (firewall-cmd --reload))))
 
-(defun install-ipa ()
-  (inferior-shell:run/ss `(yum -y update))
-  (inferior-shell:run/ss `(yum -y install ipa-server ipa-server-dns bind bind-utils bind-dyndb-ldap rng-tools vim)))
+(defun os-install-ipa ()
+  (shell
+   '((yum -y update)
+     (yum -y install ipa-server ipa-server-dns bind bind-utils bind-dyndb-ldap rng-tools vim))))
 
 (defun nss-edit ()
-  (inferior-shell:run/ss `(sed -i -e \"s/^NSSProtocol.*/NSSProtocol TLSv1\.0,TLSv1\.1/g\" /etc/httpd/conf.d/nss.conf))
-  (inferior-shell:run/ss `(systemctl restart httpd)))
+  (progn
+    (sb-ext:run-program
+     "/bin/sed" '("-i" "-e" "s/^NSSProtocol.*/NSSProtocol TLSv1\.0,TLSv1\.1/g"
+		  "/etc/httpd/conf.d/nss.conf"))
+    (shell
+     '((systemctl restart httpd)))))
 
 (defun set-reverse-zone ()
-  (inferior-shell:run/ss
-   `(ipa dnszone-mod ,(reversezone *ip-server*) --allow-sync-ptr=TRUE)))
+  (shell
+   '((ipa dnszone-mod ,(revese-zone *ip-server*) --allow-sync-ptr=TRUE))))
 
 (defun rngd-serv ()
-  (progn
-    (inferior-shell:run/ss `(systemctl start rngd))
-    (inferior-shell:run/ss `(systemctl enable ntp))))
+  (shell
+   '((systemctl start rngd)
+     (systemctl enable rngd))))
 
 (defun ntpd-serv ()
-  (progn
-    (inferior-shell:run/ss `(systemctl start ntpd))
-    (inferior-shell:run/ss `(systemctl enable ntpd))))
+  (shell
+   '((systemctl start ntpd)
+     (systemctl enable ntpd))))
