@@ -199,6 +199,17 @@
   (input-gateway)
   (input-netmask))
 
+(defun edit-net-file (&optional (file (concat "/etc/sysconfig/network-scripts/ifcfg-"
+					      *input-device-name*)))
+  "Eliminating the lines that match IPADDR, GATEWAY, PREFIX"
+  (mapcar (lambda (params)
+	    (sb-ext:run-program
+	     "/bin/sed" params))
+	  (list
+	   `("-i" "/IPADDR/d" ,file)
+	   `("-i" "/GATEWAY/d" ,file)
+	   `("-i" "/PREFIX/d" ,file))))
+
 ;; domain and realm
 
 (defun domain ()
