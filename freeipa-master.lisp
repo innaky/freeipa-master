@@ -282,3 +282,21 @@ a point in string format."
 (defun install-ipa ()
   (inferior-shell:run/ss `(yum -y update))
   (inferior-shell:run/ss `(yum -y install ipa-server ipa-server-dns bind bind-utils bind-dyndb-ldap rng-tools vim)))
+
+(defun nss-edit ()
+  (inferior-shell:run/ss `(sed -i -e \"s/^NSSProtocol.*/NSSProtocol TLSv1\.0,TLSv1\.1/g\" /etc/httpd/conf.d/nss.conf))
+  (inferior-shell:run/ss `(systemctl restart httpd)))
+
+(defun set-reverse-zone ()
+  (inferior-shell:run/ss
+   `(ipa dnszone-mod ,(reversezone *ip-server*) --allow-sync-ptr=TRUE)))
+
+(defun rngd-serv ()
+  (progn
+    (inferior-shell:run/ss `(systemctl start rngd))
+    (inferior-shell:run/ss `(systemctl enable ntp))))
+
+(defun ntpd-serv ()
+  (progn
+    (inferior-shell:run/ss `(systemctl start ntpd))
+    (inferior-shell:run/ss `(systemctl enable ntpd))))
