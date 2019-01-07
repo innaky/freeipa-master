@@ -228,7 +228,7 @@ a point in string format."
     (cons
      (cons (car lst)
 	   (cons "." nil))
-     (add-dot (cdr lst)))))
+     (elem-dot (cdr lst)))))
 
 (defun add-dot (lst)
   "Add dots between the elements of the `lst'."
@@ -292,9 +292,9 @@ a point in string format."
 
 (defun firewall-conf ()
   (shell
-   '((firewall-cmd --permanent --add-port={53,80,111,389,443,464,636,2049,20048}/tcp)
-     (firewall-cmd --permanent --add-port={53,88,111,123,464,2049,20048}/udp)
-     (firewall-cmd --permanent --add-service={http,https,ldap,ldaps,kerberos,dns,ntp,nfs,mountd})
+   '((firewall-cmd --permanent --add-port={53\,80\,111\,389\,443\,464\,636\,2049\,20048}/tcp)
+     (firewall-cmd --permanent --add-port={53\,88\,111\,123\,464\,2049\,20048}/udp)
+     (firewall-cmd --permanent --add-service={http\,https\,ldap\,ldaps\,kerberos\,dns\,ntp\,nfs\,mountd})
      (firewall-cmd --reload))))
 
 (defun os-install-ipa ()
@@ -312,7 +312,7 @@ a point in string format."
 
 (defun set-reverse-zone ()
   (shell
-   '((ipa dnszone-mod ,(revese-zone *ip-server*) --allow-sync-ptr=TRUE))))
+   `((ipa dnszone-mod ,(reverse-zone *ip-server*) --allow-sync-ptr=TRUE))))
 
 (defun rngd-serv ()
   (shell
