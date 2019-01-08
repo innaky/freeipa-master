@@ -382,16 +382,13 @@ string --add-service with `services'"
     (if (ip-p capture)
 	(setq *dns-forward* capture))))
 
-(defun install-ipa (lst)
-  (shell
-   `((ipa-server-install ,lst))))
-
-(setq *ipa-parameters* `("-p " ,(concat *ipa-password*) " -a " ,(concat *ipa-password*)
-			      " -n " ,(concat *domain-realm*) " -r " ,(string-upcase *domain-realm*)
-			      ,(concat " --hostname=" *input-hostname*)
-			      " --setup-dns " "--auto-reverse "
-			      ,(concat "--forwarder=" *dns-forward*)))
-
+(defun ipa-install ()
+  (let ((params (list *ipa-password* *domain-realm* *input-hostname* *dns-forward*)))
+    (sb-ext:run-program "/usr/sbin/ipa-server-install"
+			`("-p" ,(car params) "-a" ,(car params) "-n" ,(second params)
+			       "-r" ,(string-upcase (second params))
+			       "--hostname=",(third params) "--setup-dns" "--auto-reverse"
+			       "--forwarder=",(car (last params))))))
 (defun main ()
   (check-root)
   (get-hostname)
@@ -414,4 +411,4 @@ string --add-service with `services'"
   (rngd-serv)
   (ipa-password)
   (dns-forwarder)
-  (install-ipa *ipa-parameters*)
+  (ipa-install)
