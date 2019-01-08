@@ -1,20 +1,9 @@
 ;;; with SBCL
-;;(uiop:define-package :scripts/freeipa-master
-;;    (:use :cl :uiop :optima :optima.ppcre :binascii :cl-scripting
-;;	  :inferior-shell :command-line-arguments :ip-interfaces)
-;;  (:export ))
-
 ;;#!/usr/bin/sbcl --script
 
-(ql:quickload '(uiop optima optima.ppcre binascii cl-scripting
+(ql:quickload '(uiop optima optima.ppcre cl-launch binascii cl-scripting
 		inferior-shell command-line-arguments ip-interfaces
 		alexandria str cl-ppcre))
-
-;;(defpackage :ipa-master
-;; (:use :cl :ipa-master :uiop :optima :alexandria))
-;;(:export #:main))
-
-;;(in-package :ipa-master)
 
 ;; General asignations
 (defparameter *input-device-name* nil)
@@ -22,6 +11,10 @@
 (defparameter *input-netmask* nil)
 (defparameter *ip-server* nil)
 (defparameter *domain-realm* nil)
+(defparameter *input-hostname* nil)
+(defparameter *ipa-password* nil)
+(defparameter *ipa-parameters* nil)
+(defparameter *dns-forward* nil)
 
 
 (defun check-root ()
@@ -32,7 +25,7 @@
 	(sb-ext:exit))))
 
 (defun ip-p (string)
-  "AUX: Verify if the input match with IPv4."
+  "Verify if the input match with IPv4."
   (multiple-value-bind (match groups)
       (cl-ppcre:scan-to-strings
        "^([0-9]{0,3})\.([0-9]{0,3})\.([0-9]{0,3})\.([0-9]{0,3})$"
@@ -43,21 +36,36 @@
 		      (<= 0 num 255))
 		  numbers)))))
 
+(defun shell (lst)
+  (mapcar (lambda (command)
+	    (inferior-shell:run/ss
+	     command))
+	  lst))
+
+(defun set-hostname ()
+  (shell
+   `((hostnamectl set-hostname ,*input-hostname*))))
+
 (defun get-hostname ()
   "Print the host name, if the entry is not empty, change the name of the host by the entered."
   (format t "Input the hostname: [~A]~%" (inferior-shell:run/ss "hostname -s"))
   (let ((hostname (read-line)))
     (if (not (equal hostname ""))
-	(inferior-shell:run/ss `(hostnamectl set-hostname ,hostname)))))
+	(progn
+	  (setf *input-hostname* hostname)
+	  (set-hostname))
+	(progn
+	  (setf *input-hostname* (inferior-shell:run/ss "hostname -s"))
+	  (set-hostname)))))
 
 (defun range (start end)
-  "AUX: Create a list with values between `start' and `end'"
+  "Create a list with values between `start' and `end'"
   (if (equal start end)
       nil
       (cons start (range (1+ start) end))))
 
 (defun vector-to-lst-dot (vec)
-  "AUX: Return a list with sublist. This sublist contains the vector element in string format and a dot in string format."
+  "Return a list with sublist. This sublist contains the vector element in string format and a dot in string format."
   (let ((veclst (concatenate 'list vec)))
     (if (equal veclst nil)
 	nil
@@ -133,6 +141,16 @@
   "Concatenate multiple strings."
   (apply #'concatenate 'string strings))
 
+(defun subnet (str)
+  "Input a IPv4 and output an IPv4 with the last octet set to 0."
+  (apply #'concat
+	 (alexandria:flatten
+	  (concatenate 'list
+		       (add-dot
+			(delete-last-elem
+			 (cl-ppcre:split "\\." str)))
+		       '("0")))))
+
 ;; Check the device IPv4
 (defmacro while (test &rest body)
   `(do ()
@@ -191,7 +209,7 @@
 
 (defun ipv4-config ()
   "Main for IPv4 configuration."
-  (format t "################### IPv4 configuration ################")
+  (format t "################### IPv4 configuration ################~%")
   (format t "That is your devices and IPv4 configuration")
   (extract-ips (your-devices-and-ipv4))
   (input-device-name)
@@ -221,7 +239,7 @@
 
 ;; Calculate reverse zone
 (defun elem-dot (lst)
-  "AUX: Transform `lst' in sublists, that contains element and
+  "Transform `lst' in sublists, that contains element and
 a point in string format."
   (if (equal nil lst)
       nil
@@ -259,17 +277,24 @@ a point in string format."
 			(first-oct-ipv4 ipv4))
 		       '(".")
 		       '("in-add.arpa.")))))
+
 ;; add in the last files
+
 (defun add-str-in-last-file (filename str)
   "Add `str' in the end of the `filename'."
   (with-open-file (stream filename :direction :output
 			  :if-exists :append)
     (format stream "~A~%" str)))
 
+(defun hosts ()
+  "Set /etc/hosts"
+  (add-str-in-last-file "/etc/hosts"
+			(concat *ip-server* " " *input-hostname*)))
+
 (defun ntp-set-file ()
   "Set the /etc/ntp.conf"
   (add-str-in-last-file "/etc/ntp.conf"
-			(concat *ip-server* " netmask " *input-netmask*)))
+			(concat (subnet *ip-server*) " netmask " *input-netmask*)))
 
 (defun resolv-set-file ()
   "Set the /etc/resolv.conf"
@@ -279,23 +304,44 @@ a point in string format."
     (add-str-in-last-file "/etc/resolv.conf"
 			  (concat "nameserver " *ip-server*))))
 
+(defun new-config-net-file ()
+  "Set the select net config file."
+  (let ((file (concat "/etc/sysconfig/network-scripts/ifcfg-"
+		      *input-device-name*)))
+    (add-str-in-last-file file
+			  (concat "IPADDR=" *ip-server*))
+    (add-str-in-last-file file
+			  (concat "GATEWAY=" *input-gateway*))
+    (add-str-in-last-file file
+			  (concat "PREFIX=" *input-netmask*))))
+
 ;; system commands
-(defun shell (lst)
-  (mapcar (lambda (command)
-	    (inferior-shell:run/ss
-	     command))
-	  lst))
 
 (defun update-centos ()
   (shell '((yum -y update)
 	   (yum -y upgrade))))
 
-(defun firewall-conf ()
-  (shell
-   '((firewall-cmd --permanent --add-port={53\,80\,111\,389\,443\,464\,636\,2049\,20048}/tcp)
-     (firewall-cmd --permanent --add-port={53\,88\,111\,123\,464\,2049\,20048}/udp)
-     (firewall-cmd --permanent --add-service={http\,https\,ldap\,ldaps\,kerberos\,dns\,ntp\,nfs\,mountd})
-     (firewall-cmd --reload))))
+(defun firewall-conf (lst-ports)
+  "`x' it's equal to (for example) --add-port=53/tcp, lst-ports contain multiple
+from them"
+  (mapcar (lambda (x)
+	    (shell
+	     `((firewall-cmd --permanent ,x))))
+	  lst-ports))
+
+(defun firewall-conf-ports (ports-protocol)
+  "To reduce the input this function concatenates the
+string --add-port= with `ports-protocol'"
+  (mapcar (lambda (port)
+	    (concat "--add-port=" port))
+	  ports-protocol))
+
+(defun firewall-conf-services (services)
+  "To reduce the input this function concatenates the
+string --add-service with `services'"
+  (mapcar (lambda (service)
+	    (concat "--add-service=" service))
+	  services))
 
 (defun os-install-ipa ()
   (shell
@@ -323,3 +369,49 @@ a point in string format."
   (shell
    '((systemctl start ntpd)
      (systemctl enable ntpd))))
+
+(defun ipa-password ()
+  (format t "Input the password for IPA admin.~%")
+  (let ((capture (read-line)))
+    (if (stringp capture)
+	(setq *ipa-password* capture))))
+
+(defun dns-forwarder ()
+  (format t "Input the DNS forwarder for IPA.~%")
+  (let ((capture (read-line)))
+    (if (ip-p capture)
+	(setq *dns-forward* capture))))
+
+(defun install-ipa (lst)
+  (shell
+   `((ipa-server-install ,lst))))
+
+(setq *ipa-parameters* `("-p " ,(concat *ipa-password*) " -a " ,(concat *ipa-password*)
+			      " -n " ,(concat *domain-realm*) " -r " ,(string-upcase *domain-realm*)
+			      ,(concat " --hostname=" *input-hostname*)
+			      " --setup-dns " "--auto-reverse "
+			      ,(concat "--forwarder=" *dns-forward*)))
+
+(defun main ()
+  (check-root)
+  (get-hostname)
+  (domain)
+  (ipv4-config)
+  (hosts)
+  (firewall-conf
+   (firewall-conf-ports '("53/tcp" "80/tcp" "111/tcp" "389/tcp"
+			  "443/tcp" "464/tcp" "636/tcp" "2049/tcp"
+			  "20048/tcp" "53/udp" "88/udp" "111/udp"
+			  "123/udp" "464/udp" "2049/udp" "20048/udp")))
+  (firewall-conf
+   (firewall-conf-services '("http" "https" "ldap" "ldaps" "kerberos"
+			     "dns" "ntp" "nfs" "mountd")))
+  (shell '((firewall-cmd --reload)))
+  (update-centos)
+  (os-install-ipa)
+  (ntp-set-file)
+  (ntpd-serv)
+  (rngd-serv)
+  (ipa-password)
+  (dns-forwarder)
+  (install-ipa *ipa-parameters*)
