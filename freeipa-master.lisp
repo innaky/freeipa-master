@@ -389,6 +389,13 @@ string --add-service with `services'"
 			       "-r" ,(string-upcase (second params))
 			       "--hostname=",(third params) "--setup-dns" "--auto-reverse"
 			       "--forwarder=",(car (last params))))))
+
+(defun ipa-dnszone ()
+  (let ((param (list *domain-realm* *ip-server*)))
+    (sb-ext:run-program
+     "ipa"
+     `("dnszone-mod" ,(reverse-zone (cadr param)) "--allow-sync-ptr=TRUE"))))
+
 (defun main ()
   (check-root)
   (get-hostname)
@@ -412,3 +419,12 @@ string --add-service with `services'"
   (ipa-password)
   (dns-forwarder)
   (ipa-install)
+  (nss-edit)
+  (shell
+   '((systemctl restart httpd)))
+  (resolv-set-file)
+  (shell
+   '((ipa dnsconfig-mod --allow-sync-ptr=TRUE)))
+  (ipa-dnszone))
+
+(main)
