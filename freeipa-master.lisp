@@ -393,7 +393,7 @@ string --add-service with `services'"
 (defun ipa-dnszone ()
   (let ((param (list *domain-realm* *ip-server*)))
     (sb-ext:run-program
-     "ipa"
+     "/usr/bin/ipa"
      `("dnszone-mod" ,(reverse-zone (cadr param)) "--allow-sync-ptr=TRUE"))))
 
 (defun main ()
@@ -424,7 +424,7 @@ string --add-service with `services'"
    '((systemctl restart httpd)))
   (resolv-set-file)
   (shell
-   '((ipa dnsconfig-mod --allow-sync-ptr=TRUE)))
+   '((/usr/bin/ipa dnsconfig-mod --allow-sync-ptr=TRUE)))
   (ipa-dnszone))
 
 (main)
