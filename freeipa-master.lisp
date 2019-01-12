@@ -396,6 +396,10 @@ string --add-service with `services'"
      "/usr/bin/ipa"
      `("dnszone-mod" ,(reverse-zone (cadr param)) "--allow-sync-ptr=TRUE"))))
 
+(defun dnsconfig-mod ()
+  (sb-ext:run-program
+   "/usr/bin/ipa" `("dnsconfig-mod" "--allow-sync-ptr=TRUE")))
+
 (defun main ()
   (check-root)
   (get-hostname)
@@ -423,8 +427,7 @@ string --add-service with `services'"
   (shell
    '((systemctl restart httpd)))
   (resolv-set-file)
-  (shell
-   '((/usr/bin/ipa dnsconfig-mod --allow-sync-ptr=TRUE)))
+  (dnsconfig-mod)
   (ipa-dnszone))
 
 (main)
