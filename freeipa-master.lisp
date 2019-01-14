@@ -383,22 +383,26 @@ string --add-service with `services'"
 	(setq *dns-forward* capture))))
 
 (defun ipa-install ()
-  (let ((params (list *ipa-password* *domain-realm* *input-hostname* *dns-forward*)))
-    (sb-ext:run-program "/usr/sbin/ipa-server-install"
-			`("-p" ,(car params) "-a" ,(car params) "-n" ,(second params)
-			       "-r" ,(string-upcase (second params))
-			       "--hostname=",(third params) "--setup-dns" "--auto-reverse"
-			       "--forwarder=",(car (last params))))))
+  (let* ((params (list *ipa-password* *domain-realm* *input-hostname* *dns-forward*))
+	(dspass (concat "--ds-password=" (car params)))
+	(adminpass (concat "--admin-password=" (car params)))
+	(domain (concat "--domain=" (cadr params)))
+	(realm (concat "--realm=" (string-upcase (cadr params))))
+	(lhost (concat "--hostname=" (third params)))
+	(forward (concat "--forwarder=" (car (last params)))))
+    (sb-ext:run-program
+     "/usr/sbin/ipa-server-install"
+     (list dspass adminpass domain realm lhost "--setup-dns" "--auto-reverse" forward "--unattended") :output t)))
 
 (defun ipa-dnszone ()
   (let ((param (list *domain-realm* *ip-server*)))
     (sb-ext:run-program
      "/usr/bin/ipa"
-     `("dnszone-mod" ,(reverse-zone (cadr param)) "--allow-sync-ptr=TRUE"))))
+     `("dnszone-mod" ,(reverse-zone (cadr param)) "--allow-sync-ptr=TRUE") :output t)))
 
 (defun dnsconfig-mod ()
   (sb-ext:run-program
-   "/usr/bin/ipa" `("dnsconfig-mod" "--allow-sync-ptr=TRUE")))
+   "/usr/bin/ipa" `("dnsconfig-mod" "--allow-sync-ptr=TRUE") :output t))
 
 (defun main ()
   (check-root)
