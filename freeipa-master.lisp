@@ -141,6 +141,26 @@
   "Concatenate multiple strings."
   (apply #'concatenate 'string strings))
 
+(defun elem-dot (lst)
+  "Transform `lst' in sublists, that contains element and
+a point in string format."
+  (if (equal nil lst)
+      nil
+    (cons
+     (cons (car lst)
+	   (cons "." nil))
+     (elem-dot (cdr lst)))))
+
+(defun add-dot (lst)
+  "Add dots between the elements of the `lst'."
+  (alexandria:flatten
+   (elem-dot lst)))
+
+(defun delete-last-elem (lst)
+  "Generates a new list, without the last element."
+  (reverse
+   (cdr (reverse lst))))
+
 (defun subnet (str)
   "Input a IPv4 and output an IPv4 with the last octet set to 0."
   (apply #'concat
@@ -238,25 +258,6 @@
 	(setq *domain-realm* capture))))
 
 ;; Calculate reverse zone
-(defun elem-dot (lst)
-  "Transform `lst' in sublists, that contains element and
-a point in string format."
-  (if (equal nil lst)
-      nil
-    (cons
-     (cons (car lst)
-	   (cons "." nil))
-     (elem-dot (cdr lst)))))
-
-(defun add-dot (lst)
-  "Add dots between the elements of the `lst'."
-  (alexandria:flatten
-   (elem-dot lst)))
-
-(defun delete-last-elem (lst)
-  "Generates a new list, without the last element."
-  (reverse
-   (cdr (reverse lst))))
 
 (defmacro first-oct-ipv4 (ipv4-str)
   "Input a IPv4 in string format, and output a list
@@ -298,11 +299,11 @@ a point in string format."
 
 (defun resolv-set-file ()
   "Set the /etc/resolv.conf"
-  (progn
-    (add-str-in-last-file "/etc/resolv.conf"
-			  (concat "search " *domain-realm*))
-    (add-str-in-last-file "/etc/resolv.conf"
-			  (concat "nameserver " *ip-server*))))
+  (with-open-file (str "/etc/resolv.conf"
+		       :direction :output
+		       :if-exists :supersede)
+    (format str "~A~%" (concat "search " *domain-realm*))
+    (format str "~A~%" (concat "nameserver " *ip-server*))))
 
 (defun new-config-net-file ()
   "Set the select net config file."
@@ -404,6 +405,16 @@ string --add-service with `services'"
   (sb-ext:run-program
    "/usr/bin/ipa" `("dnsconfig-mod" "--allow-sync-ptr=TRUE") :output t))
 
+(defun ticket ()
+  "Generate a kerberos and run for config DNS parameters."
+  (let ((pass *ipa-password*))
+    (inferior-shell:run
+     `(inferior-shell:pipe
+       (echo ,pass)
+       (kinit admin)))
+    (ipa-dnszone)
+    (dnsconfig-mod)))
+
 (defun main ()
   (check-root)
   (get-hostname)
@@ -431,7 +442,6 @@ string --add-service with `services'"
   (shell
    '((systemctl restart httpd)))
   (resolv-set-file)
-  (dnsconfig-mod)
-  (ipa-dnszone))
+  (ticket))
 
 (main)
