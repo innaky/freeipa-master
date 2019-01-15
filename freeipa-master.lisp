@@ -192,50 +192,23 @@ a point in string format."
 	(setf capture nw-capture)
 	(setf *input-device-name* nw-capture)))))
 
-(defun input-gateway ()
-  "Verify if the input IPv4 is valid, else return egain the question.
-   This function modify the global variable *input-gateway*"
-  (format t "Input the IPv4 of the gateway.~%")
-  (let ((capture (read-line)))
-    (if (ip-p capture)
-	(setf *input-gateway* capture))
-    (while (not (ip-p capture))
-      (format t "Please, input a valid IPv4.~%")
-      (let ((nw-capture (read-line)))
-	(setf capture nw-capture)
-	(setf *input-gateway* nw-capture)))))
-
-(defun input-netmask ()
-  (format t "Input the IPv4 of the netmask.~%")
-  (let ((capture (read-line)))
-    (if (ip-p capture)
-	(setf *input-netmask* capture))
-    (while (not (ip-p capture))
-      (format t "Please, input the IPv4 of the netmask.~%")
-      (let ((nw-capture (read-line)))
-	(setf capture nw-capture)
-	(setf *input-netmask* nw-capture)))))
-
-(defun input-ipv4-server ()
-  (format t "Input the IPv4 for your previously select device~%")
-  (let ((capture (read-line)))
-    (if (ip-p capture)
-	(setf *ip-server* capture))
-    (while (not (ip-p capture))
-      (format t "Please input a valid IPv4.~%")
-      (let ((nw-capture (read-line)))
-	(setf capture nw-capture)
-	(setf *ip-server* nw-capture)))))
+(defmacro net-conf (first-string generic-var)
+  "A abstraction for capture network configs."
+  `(let ((capture (read-line)))
+     (if (ip-p capture)
+	 (setf ,generic-var capture))
+     (while (not (ip-p capture))
+       (format t (concat ,first-string "~%"))
+       (let ((nw-capture (read-line)))
+	 (setf capture nw-capture)
+	 (setf ,generic-var nw-capture)))))
 
 (defun ipv4-config ()
   "Main for IPv4 configuration."
   (format t "################### IPv4 configuration ################~%")
   (format t "That is your devices and IPv4 configuration")
   (extract-ips (your-devices-and-ipv4))
-  (input-device-name)
-  (input-ipv4-server)
-  (input-gateway)
-  (input-netmask))
+  (input-device-name))
 
 (defun edit-net-file (&optional (file (concat "/etc/sysconfig/network-scripts/ifcfg-"
 					      *input-device-name*)))
@@ -420,6 +393,15 @@ string --add-service with `services'"
   (get-hostname)
   (domain)
   (ipv4-config)
+  ;; Capture IPv4-server
+  (format t "Input the IPv4 for your previously select device.~%")
+  (net-conf "Please, input a valid IPv4." *ip-server*)
+  ;; IPv4 gateway conf
+  (format t "Input the IPv4 of the gateway.~%")
+  (net-conf "Please, input a valid IPv4 for the gateway." *input-gateway*)
+  ;; IPv4 netmask conf
+  (format t "Input the IPv4 of the netmask.~%")
+  (net-conf "Please, input a valid IPv4 for the netmask." *input-netmask*)
   (hosts)
   (firewall-conf
    (firewall-conf-ports '("53/tcp" "80/tcp" "111/tcp" "389/tcp"
