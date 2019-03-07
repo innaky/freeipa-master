@@ -8,3 +8,6 @@ You need a computer with access to internet and exec the install script. Then an
 ```
 ./install-freeipa-common-lisp/install.sh
 ```
+# TODO
+- [ ] Reconfiguration network files if the user need change the IPv4.
+- [ ] More functional match for bad IPv4
