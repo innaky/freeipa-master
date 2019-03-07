@@ -250,7 +250,7 @@ a point in string format."
 		       (reverse
 			(first-oct-ipv4 ipv4))
 		       '(".")
-		       '("in-add.arpa.")))))
+		       '("in-addr.arpa.")))))
 
 ;; add in the last files
 
