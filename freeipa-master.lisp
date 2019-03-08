@@ -1,9 +1,7 @@
 ;;; with SBCL
 ;;#!/usr/bin/sbcl --script
 
-(ql:quickload '(uiop optima optima.ppcre cl-launch binascii cl-scripting
-		inferior-shell command-line-arguments ip-interfaces
-		alexandria str cl-ppcre))
+(ql:quickload '(cl-launch cl-scripting inferior-shell ip-interfaces alexandria cl-ppcre))
 
 ;; General asignations
 (defparameter *input-device-name* nil)
