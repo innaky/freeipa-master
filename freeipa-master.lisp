@@ -46,7 +46,7 @@
 
 (defun get-hostname ()
   "Print the host name, if the entry is not empty, change the name of the host by the entered."
-  (format t "Input the hostname: [~A]~%" (inferior-shell:run/ss "hostname -s"))
+  (format t "Input the hostname: [~A]~%" (inferior-shell:run/ss "hostname"))
   (let ((hostname (read-line)))
     (if (not (equal hostname ""))
 	(progn
