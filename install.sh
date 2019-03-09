@@ -1,6 +1,6 @@
 #!/bin/bash
 
-yum -y install curl wget bzip2 git
+yum -y install curl wget bzip2
 curl -O https://beta.quicklisp.org/quicklisp.lisp
 wget -c http://prdownloads.sourceforge.net/sbcl/sbcl-1.4.15-x86-64-linux-binary.tar.bz2
 tar xjvf sbcl-1.4.15-x86-64-linux-binary.tar.bz2
