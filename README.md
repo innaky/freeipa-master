@@ -3,9 +3,10 @@ Install FreeIPA on Centos 7 with Common Lisp
 
 # Instructions
 
-You need a computer with access to internet and exec the install script. Then answer the questions and wait while installing FreeIPA.
+You need a computer with access to internet install git from repository and exec the install script. Then answer the questions and wait while installing FreeIPA.
 
-```
+```bash
+yum -y install git
 ./install-freeipa-common-lisp/install.sh
 ```
 # TODO
