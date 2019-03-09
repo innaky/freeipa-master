@@ -425,3 +425,4 @@ string --add-service with `services'"
   (ticket))
 
 (main)
+(quit)
