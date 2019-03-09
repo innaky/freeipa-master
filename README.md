@@ -9,7 +9,7 @@ You need a computer with access to internet install git from repository and exec
 yum -y install git
 git clone https://github.com/innaky/install-freeipa-common-lisp.git
 cd install-freeipa-common-lisp
-./install-freeipa-common-lisp/install.sh
+./install.sh
 ```
 # TODO
 - [ ] Reconfiguration network files if the user need change the IPv4.
