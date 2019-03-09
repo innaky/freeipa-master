@@ -204,7 +204,7 @@ a point in string format."
 (defun ipv4-config ()
   "Main for IPv4 configuration."
   (format t "################### IPv4 configuration ################~%")
-  (format t "That is your devices and IPv4 configuration")
+  (format t "That is your devices and IPv4 configuration~%")
   (extract-ips (your-devices-and-ipv4))
   (input-device-name))
 
