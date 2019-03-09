@@ -7,6 +7,8 @@ You need a computer with access to internet install git from repository and exec
 
 ```bash
 yum -y install git
+git clone https://github.com/innaky/install-freeipa-common-lisp.git
+cd install-freeipa-common-lisp
 ./install-freeipa-common-lisp/install.sh
 ```
 # TODO
