@@ -53,7 +53,7 @@
 	  (setf *input-hostname* hostname)
 	  (set-hostname))
 	(progn
-	  (setf *input-hostname* (inferior-shell:run/ss "hostname -s"))
+	  (setf *input-hostname* (inferior-shell:run/ss "hostname"))
 	  (set-hostname)))))
 
 (defun range (start end)
