@@ -182,12 +182,12 @@ a point in string format."
   "Receives a input from the user and check if the device exist,
    else return egain the question. This function modify the
    global variable *input-device-name*"
-  (format t "Input the name of the net device: ")
+  (format t "Input the name of the net device:~%")
   (let ((capture (read-line)))
     (if (or-match? capture (interface-names))
 	(setf *input-device-name* capture))
     (while (not (or-match? capture (interface-names)))
-      (format t "Please, Input a valid net device name: ")
+      (format t "Please, Input a valid net device name:~%")
       (extract-ips (your-devices-and-ipv4))
       (let ((nw-capture (read-line)))
 	(setf capture nw-capture)
@@ -207,7 +207,7 @@ a point in string format."
 (defun ipv4-config ()
   "Main for IPv4 configuration."
   (format t "################### IPv4 configuration ################~%")
-  (format t "That is your devices and IPv4 configuration~%~%")
+  (format t "That is your devices and IPv4 configuration~%")
   (extract-ips (your-devices-and-ipv4))
   (input-device-name))
 
@@ -226,7 +226,7 @@ a point in string format."
 
 (defun domain ()
   "Capture the domain and set *domain-realm*."
-  (format t "Input the domain name: ")
+  (format t "Input the domain name: ~%")
   (let ((capture (read-line)))
     (if (stringp capture)
 	(setq *domain-realm* capture))))
@@ -320,7 +320,7 @@ string --add-service with `services'"
 	  services))
 
 (defun os-install-ipa ()
-  (format t "Installing FreeIPA ...~%")
+  (format t "Installing FreeIPA OS packages...~%")
   (shell
    '((yum -y update)
      (yum -y install ipa-server ipa-server-dns bind bind-utils bind-dyndb-ldap rng-tools vim))))
@@ -397,13 +397,13 @@ string --add-service with `services'"
   (domain)
   (ipv4-config)
   ;; Capture IPv4-server
-  (format t "Input the IPv4 for your previously select device: ")
+  (format t "Input the IPv4 for your previously select device: ~%")
   (net-conf "Please, input a valid IPv4: " *ip-server*)
   ;; IPv4 gateway conf
-  (format t "Input the IPv4 of the gateway: ")
+  (format t "Input the IPv4 of the gateway: ~%")
   (net-conf "Please, input a valid IPv4 for the gateway: " *input-gateway*)
   ;; IPv4 netmask conf
-  (format t "Input the IPv4 of the netmask: ")
+  (format t "Input the IPv4 of the netmask: ~%")
   (net-conf "Please, input a valid IPv4 for the netmask: " *input-netmask*)
   (hosts)
   (format t "Setting firewall-cmd...~%")

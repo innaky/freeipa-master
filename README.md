@@ -11,6 +11,7 @@ The exported function is `freeipa-master:main`
 * Installing SBCL
 
 ```bash
+cd $HOME
 yum -y install git curl wget bzip2
 wget -c http://prdownloads.sourceforge.net/sbcl/sbcl-1.4.15-x86-64-linux-binary.tar.bz2
 tar xjvf sbcl-1.4.15-x86-64-linux-binary.tar.bz2
@@ -46,14 +47,15 @@ Execute SBCL and run
 
 ```lisp
 (ql:quickload "freeipa-master")
-(freeipa-master:main)
+(in-package :freeipa-master)
+(main)
 (quit)
 ```
 
 ## Run automatic freeipa-master installation
 
 ```bash
-cd freeipa-master
+cd ${HOME}/quicklisp/local-projects/freeipa-master
 ./install.sh
 ```
 
