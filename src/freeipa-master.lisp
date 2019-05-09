@@ -348,13 +348,13 @@ string --add-service with `services'"
      (systemctl enable ntpd))))
 
 (defun ipa-password ()
-  (format t "Input the password for IPA admin: ")
+  (format t "Input the password for IPA admin: ~%")
   (let ((capture (read-line)))
     (if (stringp capture)
 	(setq *ipa-password* capture))))
 
 (defun dns-forwarder ()
-  (format t "Input the DNS forwarder for IPA: ")
+  (format t "Input the DNS forwarder for IPA: ~%")
   (let ((capture (read-line)))
     (if (ip-p capture)
 	(setq *dns-forward* capture))))
