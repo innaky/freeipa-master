@@ -3,14 +3,60 @@ Install FreeIPA on Centos 7 with Common Lisp
 
 # Instructions
 
-You need a computer with access to internet install git from repository and exec the install script. Then answer the questions and wait while installing FreeIPA.
+You need a computer with access to internet and root privileges.
+The exported function is `freeipa-master:main`
+
+## Dependencies
+
+* Installing SBCL
 
 ```bash
-yum -y install git
-git clone https://github.com/innaky/install-freeipa-common-lisp.git
-cd install-freeipa-common-lisp
+yum -y install git curl wget bzip2
+wget -c http://prdownloads.sourceforge.net/sbcl/sbcl-1.4.15-x86-64-linux-binary.tar.bz2
+tar xjvf sbcl-1.4.15-x86-64-linux-binary.tar.bz2
+cd sbcl-1.4.15-x86-64-linux
+./install.sh
+cd ..
+rm -rf sbcl-1.4.15-x86-64-linux
+```
+
+* Installing quicklisp
+
+```bash
+cd $HOME
+curl -O https://beta.quicklisp.org/quicklisp.lisp
+```
+
+```bash
+sbcl --load quicklisp.lisp \
+     --eval '(quicklisp-quickstart:install)' \
+     --eval '(ql:quickload "quicklisp-slime-helper")' \
+     --eval '(ql:add-to-init-file)' \
+     --eval '(quit)'
+```
+
+## Installation freeipa-master
+
+```bash
+cd ${HOME}/quicklisp/local-projects
+git clone https://github.com/innaky/freeipa-master.git
+```
+
+Execute SBCL and run
+
+```lisp
+(ql:quickload "freeipa-master")
+(freeipa-master:main)
+(quit)
+```
+
+## Run automatic freeipa-master installation
+
+```bash
+cd freeipa-master
 ./install.sh
 ```
+
 # What is FreeIPA?
 FreeIPA is an integrated security information management solution
 combining Linux (Fedora), 389 Directory Server, MIT Kerberos, NTP,
