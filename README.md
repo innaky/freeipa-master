@@ -1,9 +1,9 @@
-# Install FreeIPA with Common Lisp
-Install FreeIPA on Centos 7 with Common Lisp
+# Install FreeIPA
+Install FreeIPA on Centos 7 with Common Lisp.
 
 # Instructions
 
-You need a computer with access to internet and root privileges.
+You need a computer with access to internet, 2 GB of RAM (minimum, this point it's very important) and root privileges.
 The exported function is `freeipa-master:main`
 
 ## Dependencies
@@ -29,6 +29,7 @@ curl -O https://beta.quicklisp.org/quicklisp.lisp
 ```
 
 ```bash
+cd $HOME
 sbcl --load quicklisp.lisp \
      --eval '(quicklisp-quickstart:install)' \
      --eval '(ql:quickload "quicklisp-slime-helper")' \
@@ -43,16 +44,17 @@ cd ${HOME}/quicklisp/local-projects
 git clone https://github.com/innaky/freeipa-master.git
 ```
 
-Execute SBCL and run
+### Execute SBCL and run
 
 ```lisp
+sbcl
 (ql:quickload "freeipa-master")
 (in-package :freeipa-master)
 (main)
 (quit)
 ```
 
-## Run automatic freeipa-master installation
+### Or run automatic freeipa-master installation (it's the same solution)
 
 ```bash
 cd ${HOME}/quicklisp/local-projects/freeipa-master
