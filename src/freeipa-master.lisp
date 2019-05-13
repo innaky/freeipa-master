@@ -211,17 +211,6 @@ a point in string format."
   (extract-ips (your-devices-and-ipv4))
   (input-device-name))
 
-(defun edit-net-file (&optional (file (concat "/etc/sysconfig/network-scripts/ifcfg-"
-					      *input-device-name*)))
-  "Eliminating the lines that match IPADDR, GATEWAY, PREFIX"
-  (mapcar (lambda (params)
-	    (sb-ext:run-program
-	     "/bin/sed" params))
-	  (list
-	   `("-i" "/IPADDR/d" ,file)
-	   `("-i" "/GATEWAY/d" ,file)
-	   `("-i" "/PREFIX/d" ,file))))
-
 ;; domain and realm
 
 (defun domain ()
@@ -278,17 +267,6 @@ a point in string format."
 		       :if-exists :supersede)
     (format str "~A~%" (concat "search " *domain-realm*))
     (format str "~A~%" (concat "nameserver " *ip-server*))))
-
-(defun new-config-net-file ()
-  "Set the select net config file."
-  (let ((file (concat "/etc/sysconfig/network-scripts/ifcfg-"
-		      *input-device-name*)))
-    (add-str-in-last-file file
-			  (concat "IPADDR=" *ip-server*))
-    (add-str-in-last-file file
-			  (concat "GATEWAY=" *input-gateway*))
-    (add-str-in-last-file file
-			  (concat "PREFIX=" *input-netmask*))))
 
 ;; system commands
 
