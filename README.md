@@ -54,11 +54,12 @@ sbcl
 (quit)
 ```
 
-### Or run automatic freeipa-master installation (it's the same solution)
+### Or from bash
 
 ```bash
-cd ${HOME}/quicklisp/local-projects/freeipa-master
-./install.sh
+sbcl --eval '(ql:quickload "freeipa-master")' \
+     --eval '(freeipa-master:main)' \
+     --eval '(quit)'
 ```
 
 # What is FreeIPA?
@@ -89,8 +90,3 @@ Security aspects related to access control, delegation of administration
 tasks and other network administration tasks can be fully centralized
 and managed via the Web UI or the ipa Command Line tool.
 (https://www.freeipa.org/page/About).
-
-
-# TODO
-- [ ] Reconfiguration network files if the user need change the IPv4.
-- [ ] More functional match for bad IPv4
