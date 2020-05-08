@@ -123,15 +123,10 @@
 
 ;; Verify if a interface exist.
 (defun match? (elem lst)
-  "Return a list with boolean values, verify if `elem' exist in `lst'."
   (if (equal nil lst)
       nil
-      (cons (equal elem (car lst))
-	    (match? elem (cdr lst)))))
-
-(defun or-match? (elem lst)
-  (car
-   (or (alexandria:flatten (match? elem lst)))))
+      (or (equal elem (car lst))
+	  (match? elem (cdr lst)))))
 
 (defun concat (&rest strings)
   "Concatenate multiple strings."
@@ -179,9 +174,9 @@ a point in string format."
    global variable *input-device-name*"
   (format t "Input the name of the net device:~%")
   (let ((capture (read-line)))
-    (if (or-match? capture (interface-names))
+    (if (match? capture (interface-names))
 	(setf *input-device-name* capture))
-    (while (not (or-match? capture (interface-names)))
+    (while (not (match? capture (interface-names)))
       (format t "Please, Input a valid net device name:~%")
       (extract-ips (your-devices-and-ipv4))
       (let ((nw-capture (read-line)))
